@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Google 联想抓取</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <p class="hint">
+        在 <strong>https://www.google.com/</strong> 展开联想后，优先使用快捷键
+        <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> 抓取（点工具栏图标会先失焦，联想常会消失）。
+      </p>
+
+      <div class="row">
+        <button id="capture" type="button" class="btn primary">从当前页抓取</button>
+        <button id="copy" type="button" class="btn">复制文本</button>
+        <button id="clear" type="button" class="btn danger">清空展示</button>
+      </div>
+
+      <p id="status" class="status" aria-live="polite"></p>
+
+      <label class="label" for="out">输出（第 2 行起开头多一个 Tab）</label>
+      <textarea id="out" spellcheck="false" rows="14" placeholder="抓取结果会出现在这里…"></textarea>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

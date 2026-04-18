@@ -1,0 +1,93 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+}
+
+body {
+  margin: 0;
+  width: 420px;
+}
+
+.wrap {
+  padding: 12px;
+}
+
+.hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: color-mix(in oklab, CanvasText 78%, Canvas);
+}
+
+kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 11px;
+  border: 1px solid color-mix(in oklab, CanvasText 22%, Canvas);
+  border-bottom-width: 2px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in oklab, CanvasText 6%, Canvas);
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid color-mix(in oklab, CanvasText 18%, Canvas);
+  background: color-mix(in oklab, CanvasText 6%, Canvas);
+  color: CanvasText;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: color-mix(in oklab, CanvasText 10%, Canvas);
+}
+
+.btn.primary {
+  border-color: color-mix(in oklab, #137333 55%, CanvasText);
+  background: color-mix(in oklab, #137333 14%, Canvas);
+}
+
+.btn.danger {
+  border-color: color-mix(in oklab, #b3261e 40%, CanvasText);
+  background: color-mix(in oklab, #b3261e 10%, Canvas);
+}
+
+.status {
+  min-height: 18px;
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: color-mix(in oklab, CanvasText 72%, Canvas);
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  margin: 0 0 6px;
+  color: color-mix(in oklab, CanvasText 78%, Canvas);
+}
+
+#out {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, CanvasText 16%, Canvas);
+  background: Field;
+  color: FieldText;
+}

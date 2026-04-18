@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Google 联想抓取",
+  "version": "1.0.0",
+  "description": "在 google.com 抓取搜索联想为可复制文本（仅本地，不上传）",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["https://www.google.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Google 联想抓取"
+  },
+  "commands": {
+    "capture-suggestions": {
+      "suggested_key": {
+        "default": "Alt+Shift+G",
+        "mac": "Alt+Shift+G"
+      },
+      "description": "抓取当前 Google 搜索联想（推荐：联想展开时使用）"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.google.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

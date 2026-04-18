@@ -1,0 +1,11 @@
+Google autocomplete mining
+
+Google 自动补全挖掘，是最简单的免费关键词研究方法！
+
+## 安装（Chrome）
+
+1. 打开 `chrome://extensions`
+2. 开启「开发者模式」
+3. 点击「加载已解压的扩展程序」，选择本仓库的 `extension` 目录
+
+在 https://www.google.com/ 展开搜索联想后，使用扩展弹窗里的说明与快捷键抓取文本（仅本地，不上传）。
