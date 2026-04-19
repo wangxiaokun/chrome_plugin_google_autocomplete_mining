@@ -6,7 +6,7 @@
 
 body {
   margin: 0;
-  width: 420px;
+  width: 440px;
 }
 
 .wrap {
@@ -70,24 +70,141 @@ kbd {
   color: color-mix(in oklab, CanvasText 72%, Canvas);
 }
 
-.label {
-  display: block;
+.tree-wrap {
+  margin: 0 0 10px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, CanvasText 14%, Canvas);
+  background: color-mix(in oklab, CanvasText 4%, Canvas);
+}
+
+.tree-label {
   font-size: 12px;
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   color: color-mix(in oklab, CanvasText 78%, Canvas);
 }
 
-#out {
-  width: 100%;
+.tree {
+  max-height: 360px;
+  overflow: auto;
+}
+
+.tree-root-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.tree-root {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: color-mix(in oklab, CanvasText 7%, Canvas);
+  border: 1px solid color-mix(in oklab, CanvasText 12%, Canvas);
+  word-break: break-word;
+}
+
+.tree-row-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.tree-caret {
+  flex-shrink: 0;
   box-sizing: border-box;
-  resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
-  font-size: 12px;
-  line-height: 1.45;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in oklab, CanvasText 16%, Canvas);
+  width: 28px;
+  min-height: 30px;
+  margin: 0;
+  padding: 0 2px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, CanvasText 14%, Canvas);
+  background: color-mix(in oklab, CanvasText 6%, Canvas);
+  color: CanvasText;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tree-caret:hover {
+  background: color-mix(in oklab, #137333 14%, Canvas);
+  border-color: color-mix(in oklab, #137333 45%, CanvasText);
+}
+
+.tree-caret:focus-visible {
+  outline: 2px solid color-mix(in oklab, #137333 55%, CanvasText);
+  outline-offset: 1px;
+}
+
+.tree-caret-spacer {
+  flex-shrink: 0;
+  width: 28px;
+  min-height: 1px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.tree-children {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0 0 0 14px;
+  border-left: 2px solid color-mix(in oklab, #137333 45%, CanvasText);
+}
+
+.tree-children li.tree-row {
+  margin: 0;
+  padding: 0;
+}
+
+.tree-children li.tree-row + li.tree-row {
+  margin-top: 4px;
+}
+
+.tree-children .tree-children {
+  margin-top: 4px;
+  padding-left: 12px;
+  border-left-color: color-mix(in oklab, CanvasText 35%, #137333);
+}
+
+.tree-item {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  text-align: left;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, CanvasText 12%, Canvas);
   background: Field;
   color: FieldText;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+  cursor: pointer;
+  word-break: break-word;
+}
+
+.tree-item:hover {
+  background: color-mix(in oklab, #137333 12%, Canvas);
+  border-color: color-mix(in oklab, #137333 40%, CanvasText);
+}
+
+.tree-item:active {
+  transform: translateY(1px);
+}
+
+.tree-item:focus-visible {
+  outline: 2px solid color-mix(in oklab, #137333 55%, CanvasText);
+  outline-offset: 1px;
+}
+
+.tree-item.is-loading {
+  opacity: 0.75;
+  cursor: wait;
 }

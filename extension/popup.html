@@ -9,8 +9,8 @@
   <body>
     <main class="wrap">
       <p class="hint">
-        在 <strong>https://www.google.com/</strong> 展开联想后，优先使用快捷键
-        <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> 抓取（点工具栏图标会先失焦，联想常会消失）。
+        在 <strong>https://www.google.com/</strong> 展开联想后，点「从当前页抓取」或使用快捷键
+        <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>。「复制文本」会把当前整棵联想树按 Tab 缩进导出到剪贴板。
       </p>
 
       <div class="row">
@@ -21,8 +21,27 @@
 
       <p id="status" class="status" aria-live="polite"></p>
 
-      <label class="label" for="out">输出（第 2 行起开头多一个 Tab）</label>
-      <textarea id="out" spellcheck="false" rows="14" placeholder="抓取结果会出现在这里…"></textarea>
+      <div id="tree-wrap" class="tree-wrap" hidden>
+        <div class="tree-label">
+          联想树：左侧 <strong>▶/▼</strong> 折叠或展开已有子项；点击词条从 Google 加载下一层联想。
+        </div>
+        <div class="tree" role="tree" aria-label="抓取到的联想">
+          <div class="tree-root-row">
+            <button
+              type="button"
+              id="root-branch-toggle"
+              class="tree-caret"
+              hidden
+              aria-label="展开或折叠第一层联想"
+              aria-expanded="true"
+            >
+              ▼
+            </button>
+            <div class="tree-root" id="tree-root" role="treeitem" aria-level="1" aria-expanded="true"></div>
+          </div>
+          <ul class="tree-children" id="tree-children" role="group"></ul>
+        </div>
+      </div>
     </main>
     <script src="popup.js"></script>
   </body>

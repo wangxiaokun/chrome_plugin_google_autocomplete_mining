@@ -33,11 +33,15 @@ async function captureActiveTab() {
   }
 }
 
-async function persistCapture(text) {
-  if (!text) return;
+async function persistCapture(text, lines) {
+  const normalized = (lines || []).map(normOneLine).filter(Boolean);
+  const finalText = text || formatCaptureText(normalized);
+  if (!finalText && !normalized.length) return;
+  await chrome.storage.local.remove(["lastError"]);
   await chrome.storage.local.set({
-    lastCapture: text,
-    lastCaptureAt: Date.now()
+    lastCapture: finalText,
+    lastCaptureAt: Date.now(),
+    lastCaptureLines: normalized
   });
 }
 
@@ -48,8 +52,7 @@ chrome.commands.onCommand.addListener(async (command) => {
     await chrome.storage.local.set({ lastError: result.error, lastErrorAt: Date.now() });
     return;
   }
-  await persistCapture(result.text);
-  await chrome.storage.local.remove(["lastError"]);
+  await persistCapture(result.text, result.lines);
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tab?.id) {
