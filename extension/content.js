@@ -153,15 +153,7 @@ function findVisibleListboxNearInput(input) {
   return list[0] || null;
 }
 
-/**
- * 在多个可见 listbox 中，找到「首条联想」已与 query 一致的那一份（解决误读旧下拉层导致超时）。
- */
-function captureSuggestionsWhenFirstLineMatchesQuery(query) {
-  const input = getSearchControl();
-  if (!input) return [];
-  const qm = normalizeForMatch(query);
-  if (!qm) return [];
-
+function collectListboxesNearInput(input) {
   const seen = new Set();
   const boxes = [];
   const push = (el) => {
@@ -169,14 +161,43 @@ function captureSuggestionsWhenFirstLineMatchesQuery(query) {
     seen.add(el);
     boxes.push(el);
   };
-
+  if (!input) return boxes;
   push(resolveListboxFromAria(input));
   for (const el of listVisibleListboxesNearInput(input)) push(el);
+  return boxes;
+}
+
+/** 当前搜索框附近下拉的「首条联想」文案（用于陈旧层对比） */
+function firstSuggestionLineNearInput(input) {
+  const lb = findVisibleListboxNearInput(input);
+  const lines = textsFromListbox(lb);
+  return lines[0] || "";
+}
+
+/**
+ * 在多个可见 listbox 中取联想列表：
+ * 1) 首条与 query 完全一致（优先，兼容 Google 把词条置顶）；
+ * 2) 否则首条与写入前快照不同（表示已针对新输入刷新，避免「首条≠词条」类查询永久超时，如 aihelper apk → alihelper…）。
+ */
+function captureFreshSuggestions(query, staleFirstLine) {
+  const input = getSearchControl();
+  if (!input) return [];
+  const qm = normalizeForMatch(query);
+  if (!qm) return [];
+  const staleM = normalizeForMatch(staleFirstLine || "");
+
+  const boxes = collectListboxesNearInput(input);
 
   for (const lb of boxes) {
     const lines = textsFromListbox(lb);
     if (!lines.length) continue;
     if (normalizeForMatch(lines[0]) === qm) return lines;
+  }
+
+  for (const lb of boxes) {
+    const lines = textsFromListbox(lb);
+    if (!lines.length) continue;
+    if (normalizeForMatch(lines[0]) !== staleM) return lines;
   }
 
   return [];
@@ -239,11 +260,11 @@ function inputValueMatchesQuery(input, query) {
 }
 
 /**
- * 写入词条后轮询，直到某一可见下拉的「首条」与词条一致（表示已针对新词刷新）。
+ * 写入词条后轮询，直到下拉已刷新（首条=词条，或首条相对写入前快照已变化）。
+ * @param {string} staleFirstLine 调用 setSearchQuery 之前、当前下拉的「首条联想」
  */
-async function waitForSuggestionsForQuery(query, timeoutMs = 8000, intervalMs = 80) {
+async function waitForSuggestionsForQuery(query, staleFirstLine, timeoutMs = 8000, intervalMs = 80) {
   const deadline = Date.now() + timeoutMs;
-  const qm = normalizeForMatch(query);
 
   await new Promise((r) => setTimeout(r, 50));
 
@@ -254,8 +275,8 @@ async function waitForSuggestionsForQuery(query, timeoutMs = 8000, intervalMs = 
       continue;
     }
 
-    const lines = captureSuggestionsWhenFirstLineMatchesQuery(query);
-    if (lines.length && normalizeForMatch(lines[0]) === qm) return lines;
+    const lines = captureFreshSuggestions(query, staleFirstLine);
+    if (lines.length) return lines;
 
     await new Promise((r) => setTimeout(r, intervalMs));
   }
@@ -264,8 +285,17 @@ async function waitForSuggestionsForQuery(query, timeoutMs = 8000, intervalMs = 
 
 async function expandQueryFromPage(queryText) {
   const q = norm(String(queryText));
+  const input = getSearchControl();
+  const sameQueryAlready = input && normalizeForMatch(input.value) === normalizeForMatch(q);
+  const staleFirst = firstSuggestionLineNearInput(input);
   setSearchQuery(q);
-  return waitForSuggestionsForQuery(q);
+  // 搜索框已是该词时 Google 可能不重建下拉：短等后直接读当前层，避免重复展开死等
+  if (sameQueryAlready) {
+    await new Promise((r) => setTimeout(r, 150));
+    const quick = captureSuggestions();
+    if (quick.length) return quick;
+  }
+  return waitForSuggestionsForQuery(q, staleFirst);
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
