@@ -17,6 +17,13 @@ function formatCaptureText(lines) {
   return normalized.map((line, i) => (i === 0 ? line : `\t${line}`)).join("\n");
 }
 
+function buildCaptureLines(query, suggestions) {
+  const rootText = normOneLine(query);
+  const kids = normalizeLines(suggestions || []);
+  if (!rootText) return kids;
+  return [rootText, ...kids];
+}
+
 async function captureActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) return { ok: false, error: "没有活动标签页" };
@@ -28,9 +35,12 @@ async function captureActiveTab() {
   try {
     const resp = await chrome.tabs.sendMessage(tab.id, { type: "CAPTURE" });
     if (!resp?.ok) return { ok: false, error: resp?.error || "页面未响应" };
-    const normalized = normalizeLines(resp.lines || []);
-    const text = formatCaptureText(normalized);
-    return { ok: true, text, lines: normalized };
+    const query = normOneLine(resp.query);
+    const suggestions = normalizeLines(resp.lines || []);
+    if (!query) return { ok: false, error: "搜索框为空，请先输入种子词。" };
+    const lines = buildCaptureLines(query, suggestions);
+    const text = formatCaptureText(lines);
+    return { ok: true, text, lines, query, suggestions };
   } catch {
     return { ok: false, error: "无法读取联想（请先刷新 google.com 页面再试）" };
   }
@@ -56,6 +66,18 @@ async function expandQueryInActiveTab(queryText) {
   }
 }
 
+const STORAGE_KEYS = [
+  "lastCapture",
+  "lastCaptureAt",
+  "lastCaptureLines",
+  "lastError",
+  "lastErrorAt"
+];
+
+async function clearAllStoredData() {
+  await chrome.storage.local.remove(STORAGE_KEYS);
+}
+
 async function persistCapture(text, lines) {
   const normalized = normalizeLines(lines || []);
   const finalText = text || formatCaptureText(normalized);
@@ -70,6 +92,56 @@ async function persistCapture(text, lines) {
 
 function $(id) {
   return document.getElementById(id);
+}
+
+function createLevelBadge(level) {
+  const badge = document.createElement("span");
+  badge.className = "tree-level-badge";
+  badge.textContent = `第${level}层`;
+  badge.title = `当前处于第 ${level} 层`;
+  return badge;
+}
+
+function createDepthBadge(depthBelow) {
+  const badge = document.createElement("span");
+  badge.className = "tree-depth-badge";
+  if (depthBelow <= 0) {
+    badge.textContent = "无下级";
+    badge.title = "尚未加载子联想";
+  } else {
+    badge.textContent = `下${depthBelow}层`;
+    badge.title = `其下已加载 ${depthBelow} 层子联想`;
+  }
+  return badge;
+}
+
+/** 计算节点之下已加载子树的最大深度（叶子为 0，仅有直接子节点为 1） */
+function countLevelsBelow(node) {
+  const kids = node?.children || [];
+  if (!kids.length) return 0;
+  let max = 0;
+  for (const ch of kids) {
+    max = Math.max(max, 1 + countLevelsBelow(ch));
+  }
+  return max;
+}
+
+function setNodeLabel(el, text, level, depthBelow) {
+  el.replaceChildren();
+  const textEl = document.createElement("span");
+  textEl.className = "tree-node-text";
+  textEl.textContent = text;
+  el.appendChild(textEl);
+  if (level != null) {
+    el.classList.add("has-level");
+    const badges = document.createElement("span");
+    badges.className = "tree-node-badges";
+    badges.appendChild(createLevelBadge(level));
+    badges.appendChild(createDepthBadge(depthBelow ?? 0));
+    el.appendChild(badges);
+  } else {
+    el.classList.remove("has-level");
+  }
 }
 
 /** @typedef {{ text: string, children: TreeNode[], loading?: boolean, expanded?: boolean }} TreeNode */
@@ -89,15 +161,22 @@ function newLeafNode(text) {
   return { text, children: [], loading: false };
 }
 
-function linesToTreeRoot(lines) {
-  const n = normalizeLines(lines);
-  if (!n.length) return null;
+function linesToTreeRoot(query, suggestions) {
+  const rootText = normOneLine(query);
+  const kids = normalizeLines(suggestions);
+  if (!rootText) return null;
   return {
-    text: n[0],
-    children: n.slice(1).map((t) => newLeafNode(t)),
+    text: rootText,
+    children: kids.map((t) => newLeafNode(t)),
     loading: false,
     expanded: true
   };
+}
+
+function linesToTreeRootFromStored(lines) {
+  const n = normalizeLines(lines);
+  if (!n.length) return null;
+  return linesToTreeRoot(n[0], n.slice(1));
 }
 
 /** 先序遍历整棵树：根 0 个 Tab，每深一层多一个 Tab */
@@ -126,7 +205,8 @@ function renderTreeFromData() {
 
   if (!treeRoot) {
     wrap.hidden = true;
-    rootEl.textContent = "";
+    rootEl.replaceChildren();
+    rootEl.classList.remove("has-level");
     ul.replaceChildren();
     ul.hidden = false;
     if (rootToggle) {
@@ -136,9 +216,8 @@ function renderTreeFromData() {
   }
 
   wrap.hidden = false;
-  rootEl.textContent = treeRoot.text;
-
   const hasFirstLevel = treeRoot.children.length > 0;
+  setNodeLabel(rootEl, treeRoot.text, 1, countLevelsBelow(treeRoot));
   if (rootToggle) {
     rootToggle.hidden = !hasFirstLevel;
     if (hasFirstLevel) {
@@ -191,7 +270,7 @@ function renderTreeNode(node, level) {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "tree-item" + (node.loading ? " is-loading" : "");
-  btn.textContent = node.loading ? `${node.text} …` : node.text;
+  setNodeLabel(btn, node.loading ? `${node.text} …` : node.text, level, countLevelsBelow(node));
   btn.setAttribute("role", "treeitem");
   btn.setAttribute("aria-level", String(level));
   btn.setAttribute("aria-expanded", hasBranch ? (branchIsExpanded(node) ? "true" : "false") : "false");
@@ -256,7 +335,7 @@ function mapExpandError(err) {
 }
 
 function renderTree(lines) {
-  treeRoot = linesToTreeRoot(lines);
+  treeRoot = linesToTreeRootFromStored(lines);
   renderTreeFromData();
 }
 
@@ -295,8 +374,14 @@ async function main() {
   await refreshFromStorage();
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;
-    if (changes.lastCaptureLines?.newValue != null) {
-      renderTree(changes.lastCaptureLines.newValue || []);
+    if (Object.prototype.hasOwnProperty.call(changes, "lastCaptureLines")) {
+      const lines = changes.lastCaptureLines.newValue;
+      if (lines == null) {
+        treeRoot = null;
+        renderTreeFromData();
+      } else {
+        renderTree(lines || []);
+      }
     }
     if (Object.prototype.hasOwnProperty.call(changes, "lastError")) {
       const err = changes.lastError?.newValue;
@@ -319,12 +404,13 @@ async function main() {
       if (status) {
         status.textContent = "未读取到联想（可能已关闭下拉，或 DOM 不匹配）。试试快捷键。";
       }
-      renderTree([]);
+      renderTree([result.query].filter(Boolean));
       return;
     }
     renderTree(result.lines);
     await persistCapture(result.text, result.lines);
-    if (status) status.textContent = `已抓取 ${result.lines.length} 条。`;
+    const suggestionCount = result.suggestions?.length ?? Math.max(0, result.lines.length - 1);
+    if (status) status.textContent = `已抓取：第1层「${result.query}」，${suggestionCount} 条第2层联想。`;
   });
 
   $("copy").addEventListener("click", async () => {
@@ -345,6 +431,20 @@ async function main() {
     treeRoot = null;
     renderTreeFromData();
     if (status) status.textContent = "已清空展示（不影响已保存的最近一次抓取记录）。";
+  });
+
+  $("clear-all").addEventListener("click", async () => {
+    if (
+      !confirm(
+        "确定要彻底清空所有已保存的抓取数据吗？\n\n将删除本地存储的联想树、抓取记录与错误信息，此操作不可恢复。"
+      )
+    ) {
+      return;
+    }
+    await clearAllStoredData();
+    treeRoot = null;
+    renderTreeFromData();
+    if (status) status.textContent = "已清空全部数据。";
   });
 }
 

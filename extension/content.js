@@ -77,6 +77,25 @@ function getSearchControl() {
   );
 }
 
+function getSearchQuery() {
+  return norm(getSearchControl()?.value || "");
+}
+
+/** 保留下拉顺序，去掉与 query 相同的词条（Google 常把当前搜索词置顶） */
+function filterSuggestionsExcludingQuery(lines, query) {
+  const qm = normalizeForMatch(query);
+  const out = [];
+  const seen = new Set();
+  for (const raw of lines || []) {
+    const t = norm(raw);
+    if (!t || seen.has(t)) continue;
+    if (qm && normalizeForMatch(t) === qm) continue;
+    seen.add(t);
+    out.push(t);
+  }
+  return out;
+}
+
 function textsFromListbox(root) {
   if (!root) return [];
 
@@ -301,8 +320,10 @@ async function expandQueryFromPage(queryText) {
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "CAPTURE") {
     try {
-      const lines = captureSuggestions();
-      sendResponse({ ok: true, lines });
+      const query = getSearchQuery();
+      const raw = captureSuggestions();
+      const lines = filterSuggestionsExcludingQuery(raw, query);
+      sendResponse({ ok: true, query, lines });
     } catch (e) {
       sendResponse({ ok: false, error: String(e?.message || e) });
     }
@@ -310,8 +331,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 
   if (msg?.type === "EXPAND_QUERY") {
-    expandQueryFromPage(msg.text)
-      .then((lines) => sendResponse({ ok: true, lines }))
+    const q = norm(String(msg.text || ""));
+    expandQueryFromPage(q)
+      .then((raw) => sendResponse({ ok: true, lines: filterSuggestionsExcludingQuery(raw, q) }))
       .catch((e) => sendResponse({ ok: false, error: String(e?.message || e) }));
     return true;
   }

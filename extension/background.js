@@ -26,8 +26,12 @@ async function captureActiveTab() {
   try {
     const resp = await chrome.tabs.sendMessage(tab.id, { type: "CAPTURE" });
     if (!resp?.ok) return { ok: false, error: resp?.error || "页面未响应" };
-    const text = formatCaptureText(resp.lines || []);
-    return { ok: true, text, lines: resp.lines || [] };
+    const query = normOneLine(resp.query);
+    const suggestions = (resp.lines || []).map(normOneLine).filter(Boolean);
+    if (!query) return { ok: false, error: "搜索框为空，请先输入种子词。" };
+    const lines = query ? [query, ...suggestions] : suggestions;
+    const text = formatCaptureText(lines);
+    return { ok: true, text, lines };
   } catch (e) {
     return { ok: false, error: "无法读取联想（请先刷新 google.com 页面再试）" };
   }
